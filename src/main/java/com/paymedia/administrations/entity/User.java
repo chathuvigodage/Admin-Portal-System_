@@ -39,6 +39,11 @@ public class User implements UserDetails  {
     @Column(name = "active_status")
     private String activeStatus;
 
+    @Column(name = "is_Locked")
+    private Boolean isLocked = false;
+
+
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
     private Role role;

@@ -77,7 +77,7 @@ public class UserService {
 //        }
 //
 //    }
-    //hiiiiiiiiiiii
+
 
 
     public DualAuthData createUser(UserRequest userRequest) {
@@ -151,6 +151,54 @@ public class UserService {
         }
     }
 
+//    public void approveDeleteUser(Integer dualAuthDataId) {
+//        Optional<DualAuthData> optionalDualAuthData = dualAuthDataRepository.findById(dualAuthDataId);
+//
+//        if (optionalDualAuthData.isPresent()) {
+//            DualAuthData dualAuthData = optionalDualAuthData.get();
+//
+//            try {
+//                UserRequest userRequest = objectMapper.readValue(dualAuthData.getNewData(), UserRequest.class);
+//                Integer adminId = authenticationService.getLoggedInUserId();
+//
+//                // Ensure ID is not null for deletion
+//                if (userRequest.getId() == null) {
+//                    log.error("User ID is null; cannot proceed with deletion.");
+//                    return;
+//                }
+//
+//                log.info("Attempting to delete user with ID: {}", userRequest.getId());
+//
+//                if (dualAuthData.getEntity().equals("User")) {
+//                    Optional<User> userToDelete = userRepository.findById(userRequest.getId());
+//
+//                    if (userToDelete.isPresent()) {
+//                        userRepository.delete(userToDelete.get());
+//                        log.info("User deleted successfully: {}", userToDelete.get().getUsername());
+//                    } else {
+//                        log.error("User not found for deletion with ID: {}", userRequest.getId());
+//                        return;
+//                    }
+//                } else {
+//                    log.error("Invalid entity for deletion: {}", dualAuthData.getEntity());
+//                    return;
+//                }
+//
+//                // Update DualAuthData status to approved
+//                dualAuthData.setReviewedBy(adminId);
+//                dualAuthData.setStatus("Approved");
+//                dualAuthDataRepository.save(dualAuthData);
+//
+//                log.info("Deletion approved successfully for entity: {}", dualAuthData.getEntity());
+//
+//            } catch (Exception e) {
+//                log.error("Error approving deletion", e);
+//            }
+//        } else {
+//            log.error("DualAuthData not found for id: {}", dualAuthDataId);
+//        }
+//    }
+
     public void approveDeleteUser(Integer dualAuthDataId) {
         Optional<DualAuthData> optionalDualAuthData = dualAuthDataRepository.findById(dualAuthDataId);
 
@@ -198,6 +246,7 @@ public class UserService {
             log.error("DualAuthData not found for id: {}", dualAuthDataId);
         }
     }
+
 
     public void approveActivateUser(Integer dualAuthDataId) {
 
@@ -299,6 +348,62 @@ public class UserService {
 
     }
 
+    public void approveUpdateUser(Integer dualAuthDataId) {
+        Optional<DualAuthData> optionalDualAuthData = dualAuthDataRepository.findById(dualAuthDataId);
+
+        if (optionalDualAuthData.isPresent()) {
+            DualAuthData dualAuthData = optionalDualAuthData.get();
+
+            try {
+                // Parse the new data from the DualAuthData entry
+                UserRequest updatedUserRequest = objectMapper.readValue(dualAuthData.getNewData(), UserRequest.class);
+                Integer adminId = authenticationService.getLoggedInUserId();
+
+                if (dualAuthData.getEntity().equals("User")) {
+                    Optional<User> userToUpdate = userRepository.findById(updatedUserRequest.getId());
+                    Optional<Role> roleOptional = roleRepository.findById(updatedUserRequest.getRoleId());
+
+                    if(roleOptional.isEmpty()) {
+                        log.info("register -> role not found");
+                    }
+
+                    Role role = roleOptional.get();
+
+                    if (userToUpdate.isPresent()) {
+                        User user = userToUpdate.get();
+                        user.setFirstName(updatedUserRequest.getFirstName());
+                        user.setLastName(updatedUserRequest.getLastName());
+                        user.setUsername(updatedUserRequest.getUsername());
+                        user.setPassword(passwordEncoder.encode(updatedUserRequest.getPassword()));
+                        user.setRole(role);
+
+                        userRepository.save(user);
+                        log.info("User updated successfully: {}", user.getUsername());
+                    } else {
+                        log.error("User not found for updating with ID: {}", updatedUserRequest.getId());
+                        return;
+                    }
+                } else {
+                    log.error("Invalid entity for updating: {}", dualAuthData.getEntity());
+                    return;
+                }
+
+                // Update DualAuthData status to approved
+                dualAuthData.setReviewedBy(adminId);
+                dualAuthData.setStatus("Approved");
+                dualAuthDataRepository.save(dualAuthData);
+
+                log.info("Update approved successfully for entity: {}", dualAuthData.getEntity());
+
+            } catch (Exception e) {
+                log.error("Error approving update", e);
+            }
+        } else {
+            log.error("DualAuthData not found for id: {}", dualAuthDataId);
+        }
+    }
+
+
 
 
 
@@ -322,34 +427,69 @@ public class UserService {
         }
     }
 
-    public String updateUserRequest(Integer id, UserRequest newUserRequest) {
-        Optional<DualAuthData> optionalDualAuthData = dualAuthDataRepository.findById(id);
+//    public String updateUserRequest(Integer id, UserRequest newUserRequest) {
+//        Optional<DualAuthData> optionalDualAuthData = dualAuthDataRepository.findById(id);
+//
+//        if (optionalDualAuthData.isPresent()) {
+//            DualAuthData dualAuthData = optionalDualAuthData.get();
+//
+//            try {
+//
+//                String updatedNewData = objectMapper.writeValueAsString(newUserRequest);
+//
+//                String currentNewData = dualAuthData.getNewData();
+//                dualAuthData.setOldData(currentNewData);
+//
+//                dualAuthData.setNewData(updatedNewData);
+//
+//                dualAuthDataRepository.save(dualAuthData);
+//
+//                return "User request updated successfully";
+//
+//            } catch (Exception e) {
+//                log.error("Error updating DualAuthData", e);
+//                return "Error updating user request";
+//            }
+//        } else {
+//            log.error("DualAuthData not found for id: {}", id);
+//            return "DualAuthData not found";
+//        }
+//    }
 
-        if (optionalDualAuthData.isPresent()) {
-            DualAuthData dualAuthData = optionalDualAuthData.get();
+    public String requestUserUpdate(Integer id, UserRequest updatedUserRequest) {
+        Optional<User> userToUpdate = userRepository.findById(id);
+        Integer adminId = authenticationService.getLoggedInUserId();
 
+        if (userToUpdate.isPresent() && adminId != null) {
             try {
+                // Convert the current user data to JSON for oldData
+                String oldDataJson = objectMapper.writeValueAsString(userToUpdate.get());
 
-                String updatedNewData = objectMapper.writeValueAsString(newUserRequest);
+                // Convert the updated user data to JSON for newData
+                String newDataJson = objectMapper.writeValueAsString(updatedUserRequest);
 
-                String currentNewData = dualAuthData.getNewData();
-                dualAuthData.setOldData(currentNewData);
-
-                dualAuthData.setNewData(updatedNewData);
+                // Create DualAuthData for updating
+                DualAuthData dualAuthData = DualAuthData.builder()
+                        .entity("User")
+                        .oldData(oldDataJson)
+                        .newData(newDataJson)
+                        .createdBy(adminId)
+                        .action("Update")
+                        .status("Pending")
+                        .build();
 
                 dualAuthDataRepository.save(dualAuthData);
-
-                return "User request updated successfully";
-
+                return "User update request submitted successfully";
             } catch (Exception e) {
-                log.error("Error updating DualAuthData", e);
-                return "Error updating user request";
+                log.error("Error requesting user update", e);
+                return "Error submitting user update request";
             }
         } else {
-            log.error("DualAuthData not found for id: {}", id);
-            return "DualAuthData not found";
+            log.error("User not found or admin ID is null");
+            return "User not found or admin ID is null";
         }
     }
+
 
 //    public String deleteDualAuthDataById(Integer id) {
 //        try {
@@ -365,13 +505,88 @@ public class UserService {
 //        }
 //    }
 
+//    public String requestUserDeletion(Integer id) {
+//        Optional<User> userToDelete = userRepository.findById(id);
+//        Integer adminId = authenticationService.getLoggedInUserId();
+//
+//        if (userToDelete.isPresent() && adminId != null) {
+//            try {
+//                String userDataJson = objectMapper.writeValueAsString(userToDelete.get());
+//
+//                // Create DualAuthData for deletion
+//                DualAuthData dualAuthData = DualAuthData.builder()
+//                        .entity("User")
+//                        .newData(userDataJson)
+//                        .createdBy(adminId)
+//                        .action("Delete")
+//                        .status("Pending")
+//                        .build();
+//
+//                dualAuthDataRepository.save(dualAuthData);
+//                return "User deleted successfully";
+//            } catch (Exception e) {
+//                log.error("Error requesting user deletion", e);
+//                return "Error deleting user request";
+//            }
+//        } else {
+//            log.error("User not found or admin ID is null");
+//            return "DualAuthData not found";
+//        }
+//    }
+
+//    public String requestUserDeletion(Integer id) {
+//        Optional<User> userToDeleteOptional = userRepository.findById(id);
+//        Integer adminId = authenticationService.getLoggedInUserId();
+//
+//        if (userToDeleteOptional.isPresent() && adminId != null) {
+//            User userToDelete = userToDeleteOptional.get();
+//
+//            if (userToDelete.getIsLocked()) {
+//                log.warn("User with ID {} is already locked due to a pending deletion request", id);
+//                return "User is already requested for deletion and locked";
+//            }
+//
+//            try {
+//                // Lock the user
+//                userToDelete.setIsLocked(true);
+//                userRepository.save(userToDelete);
+//
+//                String userDataJson = objectMapper.writeValueAsString(userToDelete);
+//
+//                // Create DualAuthData for deletion
+//                DualAuthData dualAuthData = DualAuthData.builder()
+//                        .entity("User")
+//                        .newData(userDataJson)
+//                        .createdBy(adminId)
+//                        .action("Delete")
+//                        .status("Pending")
+//                        .build();
+//
+//                dualAuthDataRepository.save(dualAuthData);
+//                return "User deletion request submitted successfully";
+//            } catch (Exception e) {
+//                log.error("Error requesting user deletion", e);
+//                return "Error submitting user deletion request";
+//            }
+//        } else {
+//            log.error("User not found or admin ID is null");
+//            return "User not found or admin ID is null";
+//        }
+//    }
+
     public String requestUserDeletion(Integer id) {
         Optional<User> userToDelete = userRepository.findById(id);
         Integer adminId = authenticationService.getLoggedInUserId();
 
         if (userToDelete.isPresent() && adminId != null) {
+            User user = userToDelete.get();
+
+            // Lock the user
+            user.setIsLocked(true);
+            userRepository.save(user);
+
             try {
-                String userDataJson = objectMapper.writeValueAsString(userToDelete.get());
+                String userDataJson = objectMapper.writeValueAsString(user);
 
                 // Create DualAuthData for deletion
                 DualAuthData dualAuthData = DualAuthData.builder()
@@ -383,16 +598,17 @@ public class UserService {
                         .build();
 
                 dualAuthDataRepository.save(dualAuthData);
-                return "User deleted successfully";
+                return "User deletion requested successfully";
             } catch (Exception e) {
                 log.error("Error requesting user deletion", e);
                 return "Error deleting user request";
             }
         } else {
             log.error("User not found or admin ID is null");
-            return "DualAuthData not found";
+            return "User not found";
         }
     }
+
 
     public void activateUser(Integer userId) {
         Optional<User> userOptional = userRepository.findById(userId);
