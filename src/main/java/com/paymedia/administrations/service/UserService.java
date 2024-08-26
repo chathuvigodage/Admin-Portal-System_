@@ -2,6 +2,7 @@ package com.paymedia.administrations.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paymedia.administrations.annotations.CheckUserLock;
 import com.paymedia.administrations.entity.DualAuthData;
 import com.paymedia.administrations.entity.Role;
 import com.paymedia.administrations.entity.User;
@@ -544,7 +545,7 @@ public class UserService {
 //            return "User not found or admin ID is null";
 //        }
 //    }
-
+    @CheckUserLock
     public String requestUserUpdate(Integer id, UserRequest updatedUserRequest) {
         Optional<User> userToUpdate = userRepository.findById(id);
         Integer adminId = authenticationService.getLoggedInUserId();
@@ -673,7 +674,7 @@ public class UserService {
 //            return "User not found or admin ID is null";
 //        }
 //    }
-
+   @CheckUserLock
     public String requestUserDeletion(Integer id) {
         Optional<User> userToDelete = userRepository.findById(id);
         Integer adminId = authenticationService.getLoggedInUserId();

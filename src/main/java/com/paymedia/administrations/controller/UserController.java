@@ -101,6 +101,7 @@ public class UserController {
 //        return ResponseEntity.ok(new CommonResponse<>(true, result, null));
 //    }
 
+
     @PostMapping("/update/{id}")
     public ResponseEntity<CommonResponse<String>> requestUserUpdate(@PathVariable Integer id, @RequestBody UserRequest updatedUserRequest) {
         String response = userService.requestUserUpdate(id, updatedUserRequest);
