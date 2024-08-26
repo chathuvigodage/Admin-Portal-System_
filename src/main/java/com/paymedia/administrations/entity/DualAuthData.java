@@ -17,8 +17,8 @@ public class DualAuthData {
 
     @Column(name = "entity")
     private String entity;
-
-    @Column(name = "old_data", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "old_data", columnDefinition = "LONGTEXT")
     private String oldData;
 
     @Lob

@@ -377,6 +377,7 @@ public class UserService {
                         user.setPassword(passwordEncoder.encode(updatedUserRequest.getPassword()));
                         user.setRole(role);
 
+                        user.setIsLocked(false);
                         userRepository.save(user);
                         log.info("User updated successfully: {}", user.getUsername());
                     } else {
@@ -410,6 +411,7 @@ public class UserService {
     public void rejectUser(Integer dualAuthDataId) {
         Optional<DualAuthData> optionalDualAuthData = dualAuthDataRepository.findById(dualAuthDataId);
 
+
         if (optionalDualAuthData.isPresent()) {
             DualAuthData dualAuthData = optionalDualAuthData.get();
 
@@ -426,6 +428,52 @@ public class UserService {
             }
         }
     }
+
+    public String rejectRequest(Integer dualAuthDataId) {
+        Optional<DualAuthData> optionalDualAuthData = dualAuthDataRepository.findById(dualAuthDataId);
+
+        if (optionalDualAuthData.isPresent()) {
+            DualAuthData dualAuthData = optionalDualAuthData.get();
+
+            try {
+                // Parse the new data to extract the userId
+                UserRequest updatedUserRequest = objectMapper.readValue(dualAuthData.getNewData(), UserRequest.class);
+                Integer userId = updatedUserRequest.getId(); // Assuming UserRequest has a method getId()
+
+                Optional<User> userOptional = userRepository.findById(userId);
+
+                if (userOptional.isPresent()) {
+                    User user = userOptional.get();
+
+                    // Check if the user is locked
+                    if (Boolean.TRUE.equals(user.getIsLocked())) {
+                        // Unlock the user
+                        user.setIsLocked(false);
+                        userRepository.save(user);
+
+                        // Update the dualAuthData record to reflect the rejection
+                        Integer adminId = authenticationService.getLoggedInUserId();
+                        dualAuthData.setReviewedBy(adminId);
+                        dualAuthData.setStatus("Rejected");
+                        dualAuthDataRepository.save(dualAuthData);
+
+                        return "Request has been rejected, and the user is now unlocked.";
+                    } else {
+                        return "User is not locked, no action needed.";
+                    }
+                } else {
+                    return "User not found.";
+                }
+            } catch (Exception e) {
+                log.error("Error rejecting the request", e);
+                return "Error rejecting the request.";
+            }
+        } else {
+            return "DualAuthData not found.";
+        }
+    }
+
+
 
 //    public String updateUserRequest(Integer id, UserRequest newUserRequest) {
 //        Optional<DualAuthData> optionalDualAuthData = dualAuthDataRepository.findById(id);
@@ -456,14 +504,66 @@ public class UserService {
 //        }
 //    }
 
+//    public String requestUserUpdate(Integer id, UserRequest updatedUserRequest) {
+//        Optional<User> userToUpdate = userRepository.findById(id);
+//        Integer adminId = authenticationService.getLoggedInUserId();
+//
+//        if (userToUpdate.isPresent() && adminId != null) {
+//            User user = userToUpdate.get();
+//            if (user.getIsLocked()) {
+//                return "User is already requested for update and is locked.";
+//            }
+//            try {
+//
+//                user.setIsLocked(true);
+//                userRepository.save(user);
+//                // Convert the current user data to JSON for oldData
+//                String oldDataJson = objectMapper.writeValueAsString(userToUpdate.get());
+//
+//                // Convert the updated user data to JSON for newData
+//                String newDataJson = objectMapper.writeValueAsString(updatedUserRequest);
+//
+//                // Create DualAuthData for updating
+//                DualAuthData dualAuthData = DualAuthData.builder()
+//                        .entity("User")
+//                        .oldData(oldDataJson)
+//                        .newData(newDataJson)
+//                        .createdBy(adminId)
+//                        .action("Update")
+//                        .status("Pending")
+//                        .build();
+//
+//                dualAuthDataRepository.save(dualAuthData);
+//                return "User update request submitted successfully";
+//            } catch (Exception e) {
+//                log.error("Error requesting user update", e);
+//                return "Error submitting user update request";
+//            }
+//        } else {
+//            log.error("User not found or admin ID is null");
+//            return "User not found or admin ID is null";
+//        }
+//    }
+
     public String requestUserUpdate(Integer id, UserRequest updatedUserRequest) {
         Optional<User> userToUpdate = userRepository.findById(id);
         Integer adminId = authenticationService.getLoggedInUserId();
 
         if (userToUpdate.isPresent() && adminId != null) {
+            User user = userToUpdate.get();
+
+            // Check if the user is locked, and if so, return a message
+            if (Boolean.TRUE.equals(user.getIsLocked())) {
+                return "User is already requested for update and is locked.";
+            }
+
             try {
+                // Lock the user for updating
+                user.setIsLocked(true);
+                userRepository.save(user);
+
                 // Convert the current user data to JSON for oldData
-                String oldDataJson = objectMapper.writeValueAsString(userToUpdate.get());
+                String oldDataJson = objectMapper.writeValueAsString(user);
 
                 // Convert the updated user data to JSON for newData
                 String newDataJson = objectMapper.writeValueAsString(updatedUserRequest);

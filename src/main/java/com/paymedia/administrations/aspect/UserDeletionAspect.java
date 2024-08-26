@@ -1,6 +1,7 @@
 package com.paymedia.administrations.aspect;
 
 import com.paymedia.administrations.entity.User;
+import com.paymedia.administrations.exception.UserLockedException;
 import com.paymedia.administrations.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.aspectj.lang.JoinPoint;
@@ -27,7 +28,7 @@ public class UserDeletionAspect {
         Optional<User> user = userRepository.findById(userId);
 
         if (user.isPresent() && Boolean.TRUE.equals(user.get().getIsLocked())) {
-            throw new IllegalStateException("User is already locked and pending deletion.");
+            throw new UserLockedException("User is already locked and pending deletion.");
         }
     }
 }

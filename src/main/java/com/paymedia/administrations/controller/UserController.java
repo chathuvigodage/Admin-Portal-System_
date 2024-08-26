@@ -86,6 +86,12 @@ public class UserController {
         return ResponseEntity.ok(new CommonResponse<>(true, "User rejected successfully", null));
     }
 
+    @PostMapping("/rejectRequest/{id}")
+    public ResponseEntity<CommonResponse<String>> rejectRequest(@PathVariable Integer id) {
+        String response = userService.rejectRequest(id);
+        return ResponseEntity.ok(new CommonResponse<>(true, response, null));
+    }
+
 //    @PutMapping("/update/{id}")
 //    public ResponseEntity<CommonResponse<String>> updateUserRequest(
 //            @PathVariable Integer id,
@@ -95,16 +101,16 @@ public class UserController {
 //        return ResponseEntity.ok(new CommonResponse<>(true, result, null));
 //    }
 
-    @PostMapping("/users/update/{id}")
+    @PostMapping("/update/{id}")
     public ResponseEntity<CommonResponse<String>> requestUserUpdate(@PathVariable Integer id, @RequestBody UserRequest updatedUserRequest) {
         String response = userService.requestUserUpdate(id, updatedUserRequest);
         return ResponseEntity.ok(new CommonResponse<>(true, response, null));
     }
 
-    @PostMapping("/users/approveUpdation/{id}")
-    public ResponseEntity<String> approveUpdateUser(@PathVariable Integer id) {
+    @PostMapping("/approveUpdation/{id}")
+    public ResponseEntity<CommonResponse<String>> approveUpdateUser(@PathVariable Integer id) {
         userService.approveUpdateUser(id);
-        return ResponseEntity.ok("User update approved successfully");
+        return ResponseEntity.ok(new CommonResponse<>(true,"User update approved successfully",null));
     }
 
     @DeleteMapping("/delete/{id}")
