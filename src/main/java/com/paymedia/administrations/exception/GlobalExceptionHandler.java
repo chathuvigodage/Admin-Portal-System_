@@ -14,4 +14,10 @@ public class GlobalExceptionHandler {
         CommonResponse<Void> response = new CommonResponse<>(false, ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
+
+    @ExceptionHandler(UserStatusException.class)
+    public ResponseEntity<CommonResponse<Void>> handleUserStatusException(UserStatusException ex) {
+        CommonResponse<Void> response = new CommonResponse<>(false, ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
 }

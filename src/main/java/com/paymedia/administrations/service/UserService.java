@@ -3,6 +3,7 @@ package com.paymedia.administrations.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paymedia.administrations.annotations.CheckUserLock;
+import com.paymedia.administrations.annotations.CheckUserStatus;
 import com.paymedia.administrations.entity.DualAuthData;
 import com.paymedia.administrations.entity.Role;
 import com.paymedia.administrations.entity.User;
@@ -710,8 +711,8 @@ public class UserService {
         }
     }
 
-
-    public void activateUser(Integer userId) {
+   @CheckUserStatus
+    public String activateUser(Integer userId) {
         Optional<User> userOptional = userRepository.findById(userId);
         Integer adminId = authenticationService.getLoggedInUserId();
 
@@ -726,15 +727,19 @@ public class UserService {
                         .status("Pending")
                         .build();
                 dualAuthDataRepository.save(dualAuthData);
+                return "User activation requested successfully";
             } catch (JsonProcessingException e) {
                 log.error("Error serializing user data to JSON", e);
-                throw new RuntimeException("Failed to process user data", e);
+//                throw new RuntimeException("Failed to process user data", e);
+                  return("error") ;
             }
         } else {
-            throw new EntityNotFoundException("User not found");
+//            throw new EntityNotFoundException("User not found");
+              return ("User not found");
         }
     }
 
+    @CheckUserStatus
     public void deactivateUser(Integer userId) {
         Optional<User> userOptional = userRepository.findById(userId);
         Integer adminId = authenticationService.getLoggedInUserId();
@@ -758,7 +763,8 @@ public class UserService {
             throw new EntityNotFoundException("User not found");
         }
     }
-
+//
+//
 
 
 

@@ -124,8 +124,8 @@ public class UserController {
 
     @PostMapping("/active/{id}")
     public ResponseEntity<CommonResponse<String>> activateUser(@PathVariable Integer id) {
-        userService.activateUser(id);
-        return ResponseEntity.ok(new CommonResponse<>(true, "Activation request submitted successfully", null));
+        String result = userService.activateUser(id);
+        return ResponseEntity.ok(new CommonResponse<>(true, result, null));
     }
 
     @PostMapping("/de-active/{id}")
