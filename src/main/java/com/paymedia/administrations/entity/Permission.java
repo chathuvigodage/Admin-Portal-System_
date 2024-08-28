@@ -16,6 +16,13 @@ public class Permission {
     @Column(name="permission_name", unique = true)
     private String permissionName;
 
+//    public Permission(Long permissionId) {
+//        this.permissionId = permissionId;
+//    }
+//
+//    // Default constructor (needed for JPA)
+//    public Permission() {
+//    }
 
     //
 }

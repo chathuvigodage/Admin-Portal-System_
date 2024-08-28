@@ -1,5 +1,6 @@
 package com.paymedia.administrations.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,38 +20,14 @@ public class Role {
 
     private String rolename;
 
-//    public Long getRoleId() {
-//        return roleId;
-//    }
-//
-//    public void setRoleId(Long roleId) {
-//        this.roleId = roleId;
-//    }
-//
-//    public String getRolename() {
-//        return rolename;
-//    }
-//
-//    public void setRolename(String rolename) {
-//        this.rolename = rolename;
-//    }
-//
-//    public Set<Permission> getPermissions() {
-//        return permissions;
-//    }
-//
-//    public void setPermissions(Set<Permission> permissions) {
-//        this.permissions = permissions;
-//    }
-
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "role_permissions",
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
-    private Set<Permission> permissions = new HashSet<>();  // Use the correct Permission class
 
+    @JsonManagedReference
+    private Set<Permission> permissions = new HashSet<>();
 
-// Getters and Setters
 }
