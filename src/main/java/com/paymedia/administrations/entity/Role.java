@@ -2,8 +2,7 @@ package com.paymedia.administrations.entity;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -12,6 +11,9 @@ import java.util.Set;
 @Table(name = "role")
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,6 +22,12 @@ public class Role {
 
     private String rolename;
 
+    @Column(name = "active_status")
+    private String activeStatus;
+
+    @Column(name = "is_Locked")
+    private Boolean isLocked = false;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "role_permissions",
@@ -27,7 +35,7 @@ public class Role {
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
 
-    @JsonManagedReference
+
     private Set<Permission> permissions = new HashSet<>();
 
 }
