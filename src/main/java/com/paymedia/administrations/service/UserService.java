@@ -2,6 +2,7 @@ package com.paymedia.administrations.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paymedia.administrations.annotations.CheckEntityLock;
 import com.paymedia.administrations.annotations.CheckUserLock;
 import com.paymedia.administrations.annotations.CheckUserStatus;
 import com.paymedia.administrations.entity.DualAuthData;
@@ -379,7 +380,7 @@ public class UserService {
     }
 
 
-    @CheckUserLock
+    @CheckEntityLock(entityType = User.class)
     public String requestUserUpdate(Integer id, UserRequest updatedUserRequest) {
         Optional<User> userToUpdate = userRepository.findById(id);
         Integer adminId = authenticationService.getLoggedInUserId();
@@ -426,7 +427,7 @@ public class UserService {
     }
 
 
-   @CheckUserLock
+    @CheckEntityLock(entityType = User.class)
     public String requestUserDeletion(Integer id) {
         Optional<User> userToDelete = userRepository.findById(id);
         Integer adminId = authenticationService.getLoggedInUserId();

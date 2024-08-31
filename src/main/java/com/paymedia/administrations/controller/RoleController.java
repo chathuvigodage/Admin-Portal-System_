@@ -39,7 +39,7 @@ public class RoleController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<CommonResponse<DualAuthData>> updateRole(@PathVariable Long id, @RequestBody RoleRequest roleRequest) {
+    public ResponseEntity<CommonResponse<DualAuthData>> updateRole(@PathVariable Integer id, @RequestBody RoleRequest roleRequest) {
         DualAuthData dualAuthData = roleService.updateRole(id, roleRequest);
         return ResponseEntity.ok(new CommonResponse<>(true, "Role update request submitted", dualAuthData));
     }
@@ -53,7 +53,7 @@ public class RoleController {
 
     // Endpoint to delete a role
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<CommonResponse<DualAuthData>> deleteRole(@PathVariable Long id) {
+    public ResponseEntity<CommonResponse<DualAuthData>> deleteRole(@PathVariable Integer id) {
         DualAuthData dualAuthData = roleService.deleteRole(id);
         return ResponseEntity.ok(new CommonResponse<>(true, "Role deletion request submitted", dualAuthData));
     }
@@ -66,13 +66,13 @@ public class RoleController {
     }
 
     @PostMapping("/active/{id}")
-    public ResponseEntity<CommonResponse<String>> activateRole(@PathVariable Long id) {
+    public ResponseEntity<CommonResponse<String>> activateRole(@PathVariable Integer id) {
         String result = roleService.activateRole(id);
         return ResponseEntity.ok(new CommonResponse<>(true, result, null));
     }
 
     @PostMapping("/de-active/{id}")
-    public ResponseEntity<CommonResponse<String>> deactivateUser(@PathVariable Long id) {
+    public ResponseEntity<CommonResponse<String>> deactivateUser(@PathVariable Integer id) {
         roleService.deactivateRole(id);
         return ResponseEntity.ok(new CommonResponse<>(true, "Deactivation request submitted successfully", null));
     }

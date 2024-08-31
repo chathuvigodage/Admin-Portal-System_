@@ -12,7 +12,7 @@ import java.util.Set;
 
 public class RoleRequest {
 
-    private Long roleId;
+    private Integer roleId;
 
     private String rolename;
 

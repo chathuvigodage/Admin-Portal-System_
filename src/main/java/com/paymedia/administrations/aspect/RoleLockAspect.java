@@ -25,10 +25,10 @@ public class RoleLockAspect {
     }
 
     @Pointcut("@annotation(com.paymedia.administrations.annotations.CheckRoleLock) && args(id,..)")
-    public void checkRoleLockPointcut(Long id) {}
+    public void checkRoleLockPointcut(Integer id) {}
 
     @Before("checkRoleLockPointcut(id)")
-    public void checkIfRoleIsLocked(Long id) {
+    public void checkIfRoleIsLocked(Integer id) {
         Optional<Role> roleOptional = roleRepository.findById(id);
         if (roleOptional.isPresent()) {
             Role role = roleOptional.get();

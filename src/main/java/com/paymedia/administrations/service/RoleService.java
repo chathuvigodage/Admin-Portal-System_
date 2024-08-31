@@ -2,6 +2,7 @@ package com.paymedia.administrations.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paymedia.administrations.annotations.CheckEntityLock;
 import com.paymedia.administrations.annotations.CheckRoleLock;
 import com.paymedia.administrations.annotations.CheckUserStatus;
 import com.paymedia.administrations.entity.DualAuthData;
@@ -117,8 +118,8 @@ public class RoleService {
         }
     }
 
-    @CheckRoleLock
-    public DualAuthData updateRole(Long roleId, RoleRequest roleRequest) {
+    @CheckEntityLock(entityType = Role.class)
+    public DualAuthData updateRole(Integer roleId, RoleRequest roleRequest) {
         try {
             Integer adminId = authenticationService.getLoggedInUserId();
             if (adminId == null) {
@@ -204,8 +205,8 @@ public class RoleService {
     }
 
 
-    @CheckRoleLock
-    public DualAuthData deleteRole(Long roleId) {
+    @CheckEntityLock(entityType = Role.class)
+    public DualAuthData deleteRole(Integer roleId) {
         try {
             Integer adminId = authenticationService.getLoggedInUserId();
             if (adminId == null) {
@@ -287,8 +288,8 @@ public class RoleService {
     }
 
 
-    @CheckRoleLock
-    public String activateRole(Long roleId) {
+    @CheckEntityLock(entityType = Role.class)
+    public String activateRole(Integer roleId) {
         Optional<Role> roleOptional = roleRepository.findById(roleId);
         Integer adminId = authenticationService.getLoggedInUserId();
 
@@ -318,8 +319,8 @@ public class RoleService {
         }
     }
 
-    @CheckRoleLock
-    public void deactivateRole(Long roleId) {
+    @CheckEntityLock(entityType = Role.class)
+    public void deactivateRole(Integer roleId) {
         Optional<Role> roleOptional = roleRepository.findById(roleId);
         Integer adminId = authenticationService.getLoggedInUserId();
 
@@ -451,7 +452,7 @@ public class RoleService {
             try {
                 // Parse the new data to extract the userId
                 Role role = objectMapper.readValue(dualAuthData.getNewData(), Role.class);
-                Long userId = role.getRoleId(); // Assuming UserRequest has a method getId()
+                Integer userId = role.getRoleId(); // Assuming UserRequest has a method getId()
 
                 Optional<Role> roleOptional = roleRepository.findById(userId);
 

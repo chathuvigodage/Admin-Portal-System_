@@ -15,6 +15,6 @@ public class UserRequest {
     private String username;
     private String password;
     @JsonProperty("role_id")
-    private Long roleId;
+    private Integer roleId;
 
 }
