@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,5 +38,12 @@ public class Role {
 
 
     private Set<Permission> permissions = new HashSet<>();
+
+    @Column(name = "created_on")
+    private LocalDateTime createdOn;
+
+    @Column(name = "updated_on")
+    private LocalDateTime updatedOn;
+
 
 }

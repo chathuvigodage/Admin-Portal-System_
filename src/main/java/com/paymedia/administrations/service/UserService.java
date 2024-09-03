@@ -14,17 +14,38 @@ import com.paymedia.administrations.repository.DualAuthDataRepository;
 import com.paymedia.administrations.repository.RoleRepository;
 import com.paymedia.administrations.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.Table;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.opencsv.CSVWriter;
+import com.itextpdf.kernel.pdf.*;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.*;
+//import com.itextpdf.layout.property.TextAlignment;
+//import com.itextpdf.layout.property.UnitValue;
 
+import java.io.ByteArrayOutputStream;
+
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
+
+import java.io.ByteArrayOutputStream;
+
+import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,7 +65,6 @@ public class UserService {
     private AuthenticationService authenticationService;
     @Autowired
     private PasswordEncoder passwordEncoder;
-
 
 
     public Page<User> searchUsers(String searchTerm, Pageable pageable) {
@@ -93,11 +113,12 @@ public class UserService {
                 UserRequest userRequest = objectMapper.readValue(dualAuthData.getNewData(), UserRequest.class);
                 Optional<Role> roleOptional = roleRepository.findById(userRequest.getRoleId());
                 Integer adminId = authenticationService.getLoggedInUserId();
-                if(roleOptional.isEmpty()) {
+                if (roleOptional.isEmpty()) {
                     log.info("register -> role not found");
                 }
 
                 Role role = roleOptional.get();
+                LocalDateTime currentDateTime = LocalDateTime.now();
 
 
                 User user = User.builder()
@@ -106,6 +127,7 @@ public class UserService {
                         .username(userRequest.getUsername())
                         .password(passwordEncoder.encode(userRequest.getPassword()))
                         .role(role) // Assign role based on role ID
+                        .createdOn(currentDateTime)
                         .build();
 
                 userRepository.save(user);
@@ -122,7 +144,6 @@ public class UserService {
             log.error("DualAuthData not found for id: {}", dualAuthDataId);
         }
     }
-
 
 
     public void approveDeleteUser(Integer dualAuthDataId) {
@@ -273,11 +294,12 @@ public class UserService {
                     Optional<User> userToUpdate = userRepository.findById(updatedUserRequest.getId());
                     Optional<Role> roleOptional = roleRepository.findById(updatedUserRequest.getRoleId());
 
-                    if(roleOptional.isEmpty()) {
+                    if (roleOptional.isEmpty()) {
                         log.info("register -> role not found");
                     }
 
                     Role role = roleOptional.get();
+                    LocalDateTime currentDateTime = LocalDateTime.now();
 
                     if (userToUpdate.isPresent()) {
                         User user = userToUpdate.get();
@@ -286,6 +308,8 @@ public class UserService {
                         user.setUsername(updatedUserRequest.getUsername());
                         user.setPassword(passwordEncoder.encode(updatedUserRequest.getPassword()));
                         user.setRole(role);
+                        user.setUpdatedOn(currentDateTime);
+
 
                         user.setIsLocked(false);
                         userRepository.save(user);
@@ -463,7 +487,7 @@ public class UserService {
         }
     }
 
-   @CheckUserStatus
+    @CheckUserStatus
     public String activateUser(Integer userId) {
         Optional<User> userOptional = userRepository.findById(userId);
         Integer adminId = authenticationService.getLoggedInUserId();
@@ -483,11 +507,11 @@ public class UserService {
             } catch (JsonProcessingException e) {
                 log.error("Error serializing user data to JSON", e);
 //                throw new RuntimeException("Failed to process user data", e);
-                  return("error") ;
+                return ("error");
             }
         } else {
 //            throw new EntityNotFoundException("User not found");
-              return ("User not found");
+            return ("User not found");
         }
     }
 
@@ -516,7 +540,138 @@ public class UserService {
         }
     }
 
+    public byte[] generateUserReport(LocalDateTime fromDate, LocalDateTime toDate, String reportType) {
+        // Fetch users based on date filters
+        List<User> users = userRepository.findByCreatedOnBetweenOrUpdatedOnBetween(fromDate, toDate, fromDate, toDate);
 
+        // Generate the report based on reportType (xlsx, csv, pdf)
+        if (reportType.equals("xlsx")) {
+            return generateXlsxReport(users);
+        } else if (reportType.equals("csv")) {
+            return generateCsvReport(users);
+        }
+//        else if (reportType.equals("pdf")) {
+//            return generatePdfReport(users);
+//        }
+        throw new IllegalArgumentException("Invalid report type: " + reportType);
+    }
+
+    private byte[] generateXlsxReport(List<User> users) {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Users");
+
+            // Header row
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Username", "Role Name", "Created On", "Updated On"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(getHeaderCellStyle(workbook));
+            }
+
+            // Data rows
+            int rowNum = 1;
+            for (User user : users) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(user.getUsername());
+                row.createCell(1).setCellValue(user.getRole().getRolename());
+                row.createCell(2).setCellValue(user.getCreatedOn().toString());
+                row.createCell(3).setCellValue(user.getUpdatedOn().toString());
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to generate XLSX report", e);
+        }
+    }
+
+    private CellStyle getHeaderCellStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        return style;
+    }
+
+    private byte[] generateCsvReport(List<User> users) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+             OutputStreamWriter osw = new OutputStreamWriter(out);
+             CSVWriter writer = new CSVWriter(osw)) {
+
+            // Header row
+            String[] headers = {"Username", "Role Name", "Created On", "Updated On"};
+            writer.writeNext(headers);
+
+            // Data rows
+            for (User user : users) {
+                String[] data = {
+                        user.getUsername(),
+                        user.getRole().getRolename(),
+                        user.getCreatedOn().toString(),
+                        user.getUpdatedOn().toString()
+                };
+                writer.writeNext(data);
+            }
+
+            writer.flush();
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to generate CSV report", e);
+        }
+    }
+
+//    @Scheduled(cron = "0 0 12 * * ?") // Every day at 12:00 PM
+//    public void sendDailyReportSummary() {
+//        // Generate report summary
+//        String reportSummary = generateReportSummary();
+//
+//        // Send the summary to the given email
+//        emailService.sendEmail("chathuvi@gmail.com", "Daily Report Summary", reportSummary);
+//    }
+//
+//    private String generateReportSummary() {
+//        // Implement logic to generate a summary of the reports generated
+//        return "Summary of reports generated...";
+//    }
+
+//    private byte[] generatePdfReport(List<User> users) {
+//        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+//            PdfWriter writer = new PdfWriter(out);
+//            PdfDocument pdfDoc = new PdfDocument(writer);
+//            Document document = new Document(pdfDoc);
+//
+//            // Title
+//            Paragraph title = new Paragraph("User Report")
+//                    .setTextAlignment(TextAlignment.CENTER)
+//                    .setFontSize(18);
+//            document.add(title);
+//
+//            // Table with 4 columns
+//            Table table = new Table(UnitValue.createPercentArray(new float[]{3, 3, 2, 2}));
+//            table.setWidth(UnitValue.createPercentValue(100));
+//
+//            // Header row
+//            String[] headers = {"Username", "Role Name", "Created On", "Updated On"};
+//            for (String header : headers) {
+//                table.addHeaderCell(new Cell().add(new Paragraph(header).setBold()));
+//            }
+//
+//            // Data rows
+//            for (User user : users) {
+//                table.addCell(new Paragraph(user.getUsername()));
+//                table.addCell(new Paragraph(user.getRole().getRolename()));
+//                table.addCell(new Paragraph(user.getCreatedOn().toString()));
+//                table.addCell(new Paragraph(user.getUpdatedOn().toString()));
+//            }
+//
+//            document.add(table);
+//            document.close();
+//            return out.toByteArray();
+//        } catch (IOException e) {
+//            throw new RuntimeException("Failed to generate PDF report", e);
+//        }
+//    }
 
 
 

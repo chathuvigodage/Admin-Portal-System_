@@ -12,6 +12,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 @RestController
 @RequestMapping("/users")
 public class UserController {
@@ -132,6 +135,23 @@ public class UserController {
     public ResponseEntity<CommonResponse<String>> deactivateUser(@PathVariable Integer id) {
         userService.deactivateUser(id);
         return ResponseEntity.ok(new CommonResponse<>(true, "Deactivation request submitted successfully", null));
+    }
+
+    @GetMapping("/report")
+    public ResponseEntity<byte[]> generateUserReport(
+            @RequestParam("fromDate") String fromDateStr,
+            @RequestParam("toDate") String toDateStr,
+            @RequestParam("reportType") String reportType) {
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        LocalDateTime fromDate = LocalDateTime.parse(fromDateStr, formatter);
+        LocalDateTime toDate = LocalDateTime.parse(toDateStr, formatter);
+
+        byte[] reportData = userService.generateUserReport(fromDate, toDate, reportType);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=user_report." + reportType)
+                .body(reportData);
     }
 
 
