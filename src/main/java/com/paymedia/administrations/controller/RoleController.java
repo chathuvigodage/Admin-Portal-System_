@@ -8,6 +8,7 @@ import com.paymedia.administrations.service.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.paymedia.administrations.service.ReportSchedulerService;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -18,6 +19,9 @@ public class RoleController {
 
     @Autowired
     private final RoleService roleService;
+
+    @Autowired
+    private ReportSchedulerService reportSchedulerService;
 
     public RoleController(RoleService roleService) {
         this.roleService = roleService;
@@ -115,4 +119,16 @@ public class RoleController {
                 .body(reportData);
     }
 
+//    @GetMapping("/send-report")
+//    public ResponseEntity<String> sendReportEmail() {
+//        try {
+//            reportSchedulerService.sendDailyReportSummary();
+//            return ResponseEntity.ok("Email sent successfully!");
+//        } catch (Exception e) {
+//            return ResponseEntity.status(500).body("Failed to send email: " + e.getMessage());
+//        }
+//    }
+
 }
+
+

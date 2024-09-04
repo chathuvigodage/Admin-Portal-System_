@@ -30,11 +30,14 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -509,7 +512,7 @@ public class RoleService {
     public byte[] generateRoleReport(LocalDateTime fromDate, LocalDateTime toDate, String reportType) {
         // Fetch roles based on date filters
         List<Role> roles = roleRepository.findByCreatedOnBetweenOrUpdatedOnBetween(fromDate, toDate, fromDate, toDate);
-
+        byte[] reportData;
         // Generate the report based on reportType (xlsx, csv, pdf)
         if (reportType.equals("xlsx")) {
             return generateXlsxReport(roles);
@@ -518,8 +521,10 @@ public class RoleService {
         }
         else if (reportType.equals("pdf")) {
             return generatePdfReport(roles);
+        } else {
+            throw new IllegalArgumentException("Invalid report type: " + reportType);
         }
-        throw new IllegalArgumentException("Invalid report type: " + reportType);
+
     }
 
 
@@ -611,5 +616,23 @@ public class RoleService {
         }
 
     }
+
+//    private void saveReportToFile(byte[] reportData, String reportType) {
+//        String directoryPath = "file:///C:/Users/chath/Downloads/";  // Specify your directory here
+//        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+//        String fileName = "role_report_" + timestamp + "." + reportType;
+//
+//        File directory = new File(directoryPath);
+//        if (!directory.exists()) {
+//            directory.mkdirs();  // Create the directory if it doesn't exist
+//        }
+//
+//        File reportFile = new File(directoryPath + fileName);
+//        try (FileOutputStream fos = new FileOutputStream(reportFile)) {
+//            fos.write(reportData);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
     
 }

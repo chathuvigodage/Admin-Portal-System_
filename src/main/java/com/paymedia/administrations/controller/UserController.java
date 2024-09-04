@@ -4,7 +4,9 @@ import com.paymedia.administrations.entity.DualAuthData;
 import com.paymedia.administrations.entity.User;
 import com.paymedia.administrations.model.request.UserRequest;
 import com.paymedia.administrations.model.response.CommonResponse;
+import com.paymedia.administrations.service.ReportSchedulerService;
 import com.paymedia.administrations.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,9 @@ import java.time.format.DateTimeFormatter;
 public class UserController {
 
     private final UserService userService;
+
+    @Autowired
+    private ReportSchedulerService reportSchedulerService;
 
     public UserController(UserService userService) {
         this.userService = userService;
@@ -153,6 +158,16 @@ public class UserController {
                 .header("Content-Disposition", "attachment; filename=user_report." + reportType)
                 .body(reportData);
     }
+
+//    @GetMapping("/send-report")
+//    public ResponseEntity<String> sendReportEmail() {
+//        try {
+//            reportSchedulerService.sendDailyReportSummary();
+//            return ResponseEntity.ok("Email sent successfully!");
+//        } catch (Exception e) {
+//            return ResponseEntity.status(500).body("Failed to send email: " + e.getMessage());
+//        }
+//    }
 
 
 }

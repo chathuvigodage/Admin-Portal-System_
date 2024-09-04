@@ -569,7 +569,7 @@ public class UserService {
             for (int i = 0; i < headers.length; i++) {
                 org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
-                cell.setCellStyle(getHeaderCellStyle(workbook));
+//                cell.setCellStyle(getHeaderCellStyle(workbook));
             }
 
             // Data rows
@@ -589,13 +589,6 @@ public class UserService {
         }
     }
 
-    private CellStyle getHeaderCellStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setBold(true);
-        style.setFont(font);
-        return style;
-    }
 
     private byte[] generateCsvReport(List<User> users) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -623,20 +616,6 @@ public class UserService {
             throw new RuntimeException("Failed to generate CSV report", e);
         }
     }
-
-//    @Scheduled(cron = "0 0 12 * * ?") // Every day at 12:00 PM
-//    public void sendDailyReportSummary() {
-//        // Generate report summary
-//        String reportSummary = generateReportSummary();
-//
-//        // Send the summary to the given email
-//        emailService.sendEmail("chathuvigodage02@gmail.com", "Daily Report Summary", reportSummary);
-//    }
-
-//    private String generateReportSummary() {
-//        // Implement logic to generate a summary of the reports generated
-//        return "Summary of reports generated...";
-//    }
 
     private byte[] generatePdfReport(List<User> users) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
