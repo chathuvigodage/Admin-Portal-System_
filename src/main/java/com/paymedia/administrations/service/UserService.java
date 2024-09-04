@@ -2,6 +2,8 @@ package com.paymedia.administrations.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itextpdf.layout.properties.TextAlignment;
+import com.itextpdf.layout.properties.UnitValue;
 import com.paymedia.administrations.annotations.CheckEntityLock;
 import com.paymedia.administrations.annotations.CheckUserLock;
 import com.paymedia.administrations.annotations.CheckUserStatus;
@@ -14,9 +16,8 @@ import com.paymedia.administrations.repository.DualAuthDataRepository;
 import com.paymedia.administrations.repository.RoleRepository;
 import com.paymedia.administrations.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.Table;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.Cell;
+//import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,9 @@ import com.opencsv.CSVWriter;
 import com.itextpdf.kernel.pdf.*;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.*;
+import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
 //import com.itextpdf.layout.property.TextAlignment;
 //import com.itextpdf.layout.property.UnitValue;
 
@@ -549,10 +553,9 @@ public class UserService {
             return generateXlsxReport(users);
         } else if (reportType.equals("csv")) {
             return generateCsvReport(users);
+        }else if (reportType.equals("pdf")) {
+            return generatePdfReport(users);
         }
-//        else if (reportType.equals("pdf")) {
-//            return generatePdfReport(users);
-//        }
         throw new IllegalArgumentException("Invalid report type: " + reportType);
     }
 
@@ -562,9 +565,9 @@ public class UserService {
 
             // Header row
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"Username", "Role Name", "Created On", "Updated On"};
+            String[] headers = {"Username", "Role Name"};
             for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
+                org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
                 cell.setCellStyle(getHeaderCellStyle(workbook));
             }
@@ -575,8 +578,8 @@ public class UserService {
                 Row row = sheet.createRow(rowNum++);
                 row.createCell(0).setCellValue(user.getUsername());
                 row.createCell(1).setCellValue(user.getRole().getRolename());
-                row.createCell(2).setCellValue(user.getCreatedOn().toString());
-                row.createCell(3).setCellValue(user.getUpdatedOn().toString());
+//                row.createCell(2).setCellValue(user.getCreatedOn().toString());
+//                row.createCell(3).setCellValue(user.getUpdatedOn().toString());
             }
 
             workbook.write(out);
@@ -600,7 +603,7 @@ public class UserService {
              CSVWriter writer = new CSVWriter(osw)) {
 
             // Header row
-            String[] headers = {"Username", "Role Name", "Created On", "Updated On"};
+            String[] headers = {"Username", "Role Name"};
             writer.writeNext(headers);
 
             // Data rows
@@ -608,8 +611,8 @@ public class UserService {
                 String[] data = {
                         user.getUsername(),
                         user.getRole().getRolename(),
-                        user.getCreatedOn().toString(),
-                        user.getUpdatedOn().toString()
+//                        user.getCreatedOn().toString(),
+//                        user.getUpdatedOn().toString()
                 };
                 writer.writeNext(data);
             }
@@ -627,51 +630,43 @@ public class UserService {
 //        String reportSummary = generateReportSummary();
 //
 //        // Send the summary to the given email
-//        emailService.sendEmail("chathuvi@gmail.com", "Daily Report Summary", reportSummary);
+//        emailService.sendEmail("chathuvigodage02@gmail.com", "Daily Report Summary", reportSummary);
 //    }
-//
+
 //    private String generateReportSummary() {
 //        // Implement logic to generate a summary of the reports generated
 //        return "Summary of reports generated...";
 //    }
 
-//    private byte[] generatePdfReport(List<User> users) {
-//        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-//            PdfWriter writer = new PdfWriter(out);
-//            PdfDocument pdfDoc = new PdfDocument(writer);
-//            Document document = new Document(pdfDoc);
-//
-//            // Title
-//            Paragraph title = new Paragraph("User Report")
-//                    .setTextAlignment(TextAlignment.CENTER)
-//                    .setFontSize(18);
-//            document.add(title);
-//
-//            // Table with 4 columns
-//            Table table = new Table(UnitValue.createPercentArray(new float[]{3, 3, 2, 2}));
-//            table.setWidth(UnitValue.createPercentValue(100));
-//
-//            // Header row
-//            String[] headers = {"Username", "Role Name", "Created On", "Updated On"};
-//            for (String header : headers) {
-//                table.addHeaderCell(new Cell().add(new Paragraph(header).setBold()));
-//            }
-//
-//            // Data rows
-//            for (User user : users) {
-//                table.addCell(new Paragraph(user.getUsername()));
-//                table.addCell(new Paragraph(user.getRole().getRolename()));
-//                table.addCell(new Paragraph(user.getCreatedOn().toString()));
-//                table.addCell(new Paragraph(user.getUpdatedOn().toString()));
-//            }
-//
-//            document.add(table);
-//            document.close();
-//            return out.toByteArray();
-//        } catch (IOException e) {
-//            throw new RuntimeException("Failed to generate PDF report", e);
-//        }
-//    }
+    private byte[] generatePdfReport(List<User> users) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            PdfWriter writer = new PdfWriter(out);
+            PdfDocument pdfDoc = new PdfDocument(writer);
+            Document document = new Document(pdfDoc);
+
+            Paragraph title = new Paragraph("User Report")
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setFontSize(18);
+            document.add(title);
+
+            Table table = new Table(UnitValue.createPercentArray(new float[]{6,4}));
+            table.setWidth(UnitValue.createPercentValue(100));
+
+            String[] headers = {"Username", "Role Name"};
+            for (String header : headers) {
+                table.addHeaderCell(new Cell().add(new Paragraph(header).setBold()));
+            }
+            for (User user : users) {
+                table.addCell(new Paragraph(user.getUsername()));
+                table.addCell(new Paragraph(user.getRole().getRolename()));
+            }
+            document.add(table);
+            document.close();
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to generate PDF report", e);
+        }
+    }
 
 
 

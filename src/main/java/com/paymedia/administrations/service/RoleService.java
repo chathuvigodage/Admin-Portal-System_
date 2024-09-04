@@ -2,6 +2,14 @@ package com.paymedia.administrations.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.TextAlignment;
+import com.itextpdf.layout.properties.UnitValue;
 import com.paymedia.administrations.annotations.CheckEntityLock;
 import com.paymedia.administrations.annotations.CheckRoleLock;
 import com.paymedia.administrations.annotations.CheckUserStatus;
@@ -18,7 +26,16 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -76,11 +93,13 @@ public class RoleService {
                         .map(permissionId -> permissionRepository.findById(permissionId)
                                 .orElseThrow(() -> new RuntimeException("Permission not found: " + permissionId)))
                         .collect(Collectors.toSet());
+                LocalDateTime currentDateTime = LocalDateTime.now();
 
                 // Create and save the Role entity
                 Role role = Role.builder()
                         .rolename(roleRequest.getRolename())
                         .permissions(permissions)
+                        .createdOn(currentDateTime)
                         .build();
 
                 roleRepository.save(role);
@@ -180,11 +199,13 @@ public class RoleService {
                         .map(permissionId -> permissionRepository.findById(permissionId)
                                 .orElseThrow(() -> new RuntimeException("Permission not found: " + permissionId)))
                         .collect(Collectors.toSet());
+                LocalDateTime currentDateTime = LocalDateTime.now();
 
                 // Update the role's properties
                 role.setRolename(roleRequest.getRolename());
                 role.setPermissions(permissions);
                 role.setIsLocked(false);
+                role.setUpdatedOn(currentDateTime);
                 roleRepository.save(role);
 
                 // Save the updated role to the role table
@@ -250,7 +271,6 @@ public class RoleService {
     }
 
 
-
     public void approveRoleDeletion(Integer dualAuthDataId) {
         Optional<DualAuthData> optionalDualAuthData = dualAuthDataRepository.findById(dualAuthDataId);
 
@@ -311,7 +331,7 @@ public class RoleService {
             } catch (JsonProcessingException e) {
                 log.error("Error serializing role data to JSON", e);
 //                throw new RuntimeException("Failed to process role data", e);
-                return("error") ;
+                return ("error");
             }
         } else {
 
@@ -347,7 +367,6 @@ public class RoleService {
             throw new EntityNotFoundException("Role not found");
         }
     }
-
 
 
     public void approveDeactivateRole(Integer dualAuthDataId) {
@@ -457,12 +476,12 @@ public class RoleService {
                 Optional<Role> roleOptional = roleRepository.findById(userId);
 
                 if (roleOptional.isPresent()) {
-                    Role existingRole  = roleOptional.get();
+                    Role existingRole = roleOptional.get();
 
                     // Check if the user is locked
                     if (Boolean.TRUE.equals(role.getIsLocked())) {
                         // Unlock the user
-                        existingRole .setIsLocked(false);
+                        existingRole.setIsLocked(false);
                         roleRepository.save(existingRole);
 
                         // Update the dualAuthData record to reflect the rejection
@@ -487,4 +506,110 @@ public class RoleService {
         }
     }
 
+    public byte[] generateRoleReport(LocalDateTime fromDate, LocalDateTime toDate, String reportType) {
+        // Fetch roles based on date filters
+        List<Role> roles = roleRepository.findByCreatedOnBetweenOrUpdatedOnBetween(fromDate, toDate, fromDate, toDate);
+
+        // Generate the report based on reportType (xlsx, csv, pdf)
+        if (reportType.equals("xlsx")) {
+            return generateXlsxReport(roles);
+        } else if (reportType.equals("csv")) {
+            return generateCsvReport(roles);
+        }
+        else if (reportType.equals("pdf")) {
+            return generatePdfReport(roles);
+        }
+        throw new IllegalArgumentException("Invalid report type: " + reportType);
+    }
+
+
+    private byte[] generateXlsxReport(List<Role> roles) {
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            XSSFSheet sheet = workbook.createSheet("Roles and Permissions");
+
+            int rowNum = 0;
+            Row header = sheet.createRow(rowNum++);
+            header.createCell(0).setCellValue("Role Name");
+            header.createCell(1).setCellValue("Permissions");
+
+            for (Role role : roles) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(role.getRolename());
+
+                String permissions = role.getPermissions()
+                        .stream()
+                        .map(Permission::getPermissionName)
+                        .collect(Collectors.joining(", "));
+                row.createCell(1).setCellValue(permissions);
+            }
+
+            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                workbook.write(outputStream);
+                return outputStream.toByteArray();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private byte[] generateCsvReport(List<Role> roles) {
+        StringBuilder csvBuilder = new StringBuilder();
+        csvBuilder.append("Role Name,Permissions\n");
+
+        for (Role role : roles) {
+            String permissions = role.getPermissions()
+                    .stream()
+                    .map(Permission::getPermissionName)
+                    .collect(Collectors.joining(", "));
+            csvBuilder.append(role.getRolename()).append(",").append(permissions).append("\n");
+        }
+
+        return csvBuilder.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private byte[] generatePdfReport(List<Role> roles) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            PdfWriter writer = new PdfWriter(out);
+            PdfDocument pdfDoc = new PdfDocument(writer);
+            Document document = new Document(pdfDoc);
+
+            // Add title
+            Paragraph title = new Paragraph("Roles and Permissions Report")
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setFontSize(18);
+            document.add(title);
+
+            // Create a table with two columns: Role Name and Permissions
+            Table table = new Table(UnitValue.createPercentArray(new float[]{3, 7}));
+            table.setWidth(UnitValue.createPercentValue(100));
+
+            // Add table headers
+            String[] headers = {"Role Name", "Permissions"};
+            for (String header : headers) {
+                table.addHeaderCell(new Cell().add(new Paragraph(header).setBold()));
+            }
+
+            // Add role data
+            for (Role role : roles) {
+                table.addCell(new Paragraph(role.getRolename()));
+
+                String permissions = role.getPermissions()
+                        .stream()
+                        .map(Permission::getPermissionName)
+                        .collect(Collectors.joining(", "));
+                table.addCell(new Paragraph(permissions));
+            }
+
+            // Add table to document
+            document.add(table);
+            document.close();
+
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to generate PDF report", e);
+        }
+
+    }
+    
 }

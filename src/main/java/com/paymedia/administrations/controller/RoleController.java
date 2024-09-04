@@ -9,6 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 @RestController
 @RequestMapping("/roles")
 public class RoleController {
@@ -93,6 +96,23 @@ public class RoleController {
     public ResponseEntity<CommonResponse<String>> rejectRequest(@PathVariable Integer id) {
         String response = roleService.rejectRequest(id);
         return ResponseEntity.ok(new CommonResponse<>(true, response, null));
+    }
+
+    @GetMapping("/report")
+    public ResponseEntity<byte[]> generateRoleReport(
+            @RequestParam("fromDate") String fromDateStr,
+            @RequestParam("toDate") String toDateStr,
+            @RequestParam("reportType") String reportType) {
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        LocalDateTime fromDate = LocalDateTime.parse(fromDateStr, formatter);
+        LocalDateTime toDate = LocalDateTime.parse(toDateStr, formatter);
+
+        byte[] reportData = roleService.generateRoleReport(fromDate, toDate, reportType);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=role_report." + reportType)
+                .body(reportData);
     }
 
 }
